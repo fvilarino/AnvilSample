@@ -1,12 +1,14 @@
 package com.anvilsample.app.di
 
-import android.content.Context
-import com.anvilsample.app.AnvilApp
+import com.anvilsample.app.ComponentRepository
 import com.anvilsample.app.repository.User
 import com.squareup.anvil.annotations.ContributesBinding
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
+import javax.inject.Provider
+
+const val USER_COMPONENT_NAME = "user_component"
 
 interface UserManager {
     val isLoggedIn: Flow<Boolean>
@@ -19,23 +21,24 @@ interface UserManager {
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 class UserManagerImpl @Inject constructor(
-    @ApplicationContext context: Context
+    private val userComponentFactory: Provider<UserComponent.Factory>,
+    private val componentRepository: ComponentRepository,
 ) : UserManager {
 
-    private val anvilApp = context as AnvilApp
 
     override val user: MutableStateFlow<User?> = MutableStateFlow(null)
 
     override val isLoggedIn = MutableStateFlow(false)
 
     override fun login(user: User) {
-        anvilApp.createUserComponent(user)
+        val userComponent = userComponentFactory.get().create(user)
+        componentRepository.put(userComponent, USER_COMPONENT_NAME)
         this.user.value = user
         isLoggedIn.value = true
     }
 
     override fun logout() {
-        anvilApp.releaseUserComponent()
+        componentRepository.clear(USER_COMPONENT_NAME)
         isLoggedIn.value = false
         user.value = null
     }

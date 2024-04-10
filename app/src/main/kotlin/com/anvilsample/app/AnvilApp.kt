@@ -3,20 +3,12 @@ package com.anvilsample.app
 import android.app.Application
 import com.anvilsample.app.di.ApplicationComponent
 import com.anvilsample.app.di.DaggerApplicationComponent
-import com.anvilsample.app.repository.User
 import com.anvilsample.app.di.UserComponent
-import javax.inject.Inject
 
-class AnvilApp : Application() {
+class AnvilApp : Application(), ComponentRepository {
+
+    private val components = mutableMapOf<String, Any>()
     lateinit var appComponent: ApplicationComponent
-
-    @Inject
-    lateinit var userComponentFactory: UserComponent.Factory
-
-    val userComponent: UserComponent
-        get() = requireNotNull(_userComponent)
-
-    private var _userComponent: UserComponent? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -25,13 +17,14 @@ class AnvilApp : Application() {
         }
     }
 
-    fun createUserComponent(user: User) {
-        check(_userComponent == null) { "Already created" }
-        _userComponent = userComponentFactory.create(user)
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> get(key: String): T? = components[key] as? T
+
+    override fun put(component: Any, key: String) {
+        components[key] = component
     }
 
-    fun releaseUserComponent() {
-        check(_userComponent != null) { "Already released" }
-        _userComponent = null
+    override fun clear(key: String) {
+        components.remove(key)
     }
 }
